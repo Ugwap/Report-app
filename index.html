@@ -1,0 +1,529 @@
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Laporan Toko & Barang</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter & FontAwesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf Library CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-clipboard-list text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">StoreReport Hub</h1>
+                    <p class="text-xs text-slate-500">Kelola Laporan Barang & Toko</p>
+                </div>
+            </div>
+            <!-- Export Actions -->
+            <div class="flex items-center space-x-2">
+                <button onclick="exportToPDF()" class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition shadow-sm">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Export PDF</span>
+                </button>
+                <button onclick="showComingSoon('Excel')" class="hidden sm:inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition shadow-sm">
+                    <i class="fa-solid fa-file-excel text-emerald-500"></i>
+                    <span>Export Excel</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+
+        <!-- Stats Overview Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <i class="fa-solid fa-receipt text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Laporan</p>
+                    <h3 id="statTotalReports" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Jumlah Barang</p>
+                    <h3 id="statTotalQuantity" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3.5 bg-amber-50 text-amber-600 rounded-xl">
+                    <i class="fa-solid fa-store text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Toko Unik</p>
+                    <h3 id="statTotalStores" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Layout: Form + Data Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Form Input / Edit -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sticky top-24">
+                    <div class="flex items-center justify-between mb-5">
+                        <h2 id="formTitle" class="text-base font-bold text-slate-900 flex items-center space-x-2">
+                            <i class="fa-solid fa-circle-plus text-indigo-600"></i>
+                            <span>Tambah Laporan Baru</span>
+                        </h2>
+                        <button id="btnCancelEdit" onclick="resetForm()" class="hidden text-xs text-rose-600 font-medium hover:underline">Batal</button>
+                    </div>
+
+                    <form id="reportForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                        <input type="hidden" id="reportIndex" value="">
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Toko</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                    <i class="fa-solid fa-store text-xs"></i>
+                                </span>
+                                <input type="text" id="storeName" required placeholder="Masukkan nama toko" 
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Barang</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                    <i class="fa-solid fa-box text-xs"></i>
+                                </span>
+                                <input type="text" id="itemName" required placeholder="Masukkan nama barang" 
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                    <i class="fa-solid fa-calendar text-xs"></i>
+                                </span>
+                                <input type="date" id="reportDate" required 
+                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" id="btnSubmit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-save"></i>
+                                <span>Simpan Laporan</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Data Table & Filters -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Search & Filters Toolbar -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="relative w-full sm:w-72">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-search text-xs"></i>
+                        </span>
+                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari toko atau barang..." 
+                            class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    </div>
+                    
+                    <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                        <button onclick="clearAllData()" class="px-3 py-2 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition border border-rose-200 flex items-center space-x-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Hapus Semua</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Wrapper (Target for PDF export container) -->
+                <div id="pdfExportContainer" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-4 sm:p-6">
+                    <!-- PDF Header Title (Only visible inside PDF or nice header) -->
+                    <div class="mb-4 pb-4 border-b border-slate-100 flex justify-between items-center">
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900">Laporan Rekapitulasi Toko & Barang</h2>
+                            <p class="text-xs text-slate-500" id="exportDateStamp">Dicetak pada: -</p>
+                        </div>
+                        <div class="text-right hidden sm:block">
+                            <span class="text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full">StoreReport Hub</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                                    <th class="py-3.5 px-4 w-12">No</th>
+                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('store')">Nama Toko <i class="fa-solid fa-sort text-[10px] ml-1"></i></th>
+                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('item')">Nama Barang <i class="fa-solid fa-sort text-[10px] ml-1"></i></th>
+                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('date')">Tanggal <i class="fa-solid fa-sort text-[10px] ml-1"></i></th>
+                                    <th class="py-3.5 px-4 text-right no-print">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody" class="divide-y divide-slate-100 text-sm">
+                                <!-- Dynamic rows populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="emptyState" class="hidden py-16 text-center">
+                        <div class="inline-flex p-4 bg-slate-100 text-slate-400 rounded-full mb-3">
+                            <i class="fa-solid fa-folder-open text-2xl"></i>
+                        </div>
+                        <p class="text-slate-600 font-medium text-sm">Belum ada data laporan tersimpan.</p>
+                        <p class="text-slate-400 text-xs mt-1">Silakan tambahkan data melalui formulir di sebelah kiri.</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-4">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">
+            &copy; 2026 StoreReport Hub. All data is saved securely in your browser local storage.
+        </div>
+    </footer>
+
+    <!-- Custom Notification / Modal Notification -->
+    <div id="notificationModal" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl mx-4 transform scale-95 transition-transform duration-300" id="modalContent">
+            <div class="text-center">
+                <div id="modalIconContainer" class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 text-xl">
+                    <i id="modalIcon" class="fa-solid fa-info"></i>
+                </div>
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-900 mb-1">Informasi</h3>
+                <p id="modalMessage" class="text-sm text-slate-600 mb-6">Pesan notifikasi...</p>
+                <button onclick="closeModal()" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow transition">
+                    Mengerti
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // State Management
+        let reports = [];
+        let currentSortColumn = 'date';
+        let sortAscending = false;
+
+        // Initialize App on Load
+        window.onload = function() {
+            setDefaultDate();
+            loadReportsFromStorage();
+            renderTable();
+        };
+
+        // Set default date to today's date (YYYY-MM-DD)
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reportDate').value = today;
+        }
+
+        // Local Storage Operations
+        function loadReportsFromStorage() {
+            const saved = localStorage.getItem('store_reports');
+            if (saved) {
+                try {
+                    reports = JSON.parse(saved);
+                } catch(e) {
+                    reports = [];
+                }
+            } else {
+                reports = [];
+                saveReportsToStorage();
+            }
+        }
+
+        function saveReportsToStorage() {
+            localStorage.setItem('store_reports', JSON.stringify(reports));
+        }
+
+        // Handle Form Submit (Create or Update)
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const index = document.getElementById('reportIndex').value;
+            const store = document.getElementById('storeName').value.trim();
+            const item = document.getElementById('itemName').value.trim();
+            const date = document.getElementById('reportDate').value;
+
+            if (!store || !item || !date) {
+                showModal('Peringatan', 'Semua kolom wajib diisi dengan benar.', 'fa-triangle-exclamation', 'amber');
+                return;
+            }
+
+            if (index === '') {
+                // Add new
+                reports.push({ store, item, date });
+                showModal('Berhasil', 'Laporan baru berhasil ditambahkan.', 'fa-circle-check', 'emerald');
+            } else {
+                // Update existing
+                reports[index] = { store, item, date };
+                showModal('Berhasil', 'Laporan berhasil diperbarui.', 'fa-circle-check', 'emerald');
+            }
+
+            saveReportsToStorage();
+            resetForm();
+            renderTable();
+        }
+
+        // Reset Form
+        function resetForm() {
+            document.getElementById('reportForm').reset();
+            document.getElementById('reportIndex').value = '';
+            document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-circle-plus text-indigo-600"></i><span>Tambah Laporan Baru</span>';
+            document.getElementById('btnSubmit').innerHTML = '<i class="fa-solid fa-save"></i><span>Simpan Laporan</span>';
+            document.getElementById('btnCancelEdit').classList.add('hidden');
+            setDefaultDate();
+        }
+
+        // Edit Report
+        function editReport(index) {
+            const report = reports[index];
+            document.getElementById('reportIndex').value = index;
+            document.getElementById('storeName').value = report.store;
+            document.getElementById('itemName').value = report.item;
+            document.getElementById('reportDate').value = report.date;
+
+            document.getElementById('formTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-600"></i><span>Edit Laporan</span>';
+            document.getElementById('btnSubmit').innerHTML = '<i class="fa-solid fa-check"></i><span>Perbarui Laporan</span>';
+            document.getElementById('btnCancelEdit').classList.remove('hidden');
+
+            // Scroll to form on mobile/tablet view
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Delete Single Report
+        function deleteReport(index) {
+            if (confirmAction('Apakah Anda yakin ingin menghapus laporan ini?')) {
+                reports.splice(index, 1);
+                saveReportsToStorage();
+                renderTable();
+                showModal('Terhapus', 'Laporan berhasil dihapus.', 'fa-trash', 'rose');
+            }
+        }
+
+        // Clear All Data
+        function clearAllData() {
+            if (reports.length === 0) {
+                showModal('Informasi', 'Tidak ada data untuk dihapus.', 'fa-info', 'indigo');
+                return;
+            }
+            if (confirmAction('PERINGATAN: Semua data laporan akan dihapus permanen! Lanjutkan?')) {
+                reports = [];
+                saveReportsToStorage();
+                renderTable();
+                showModal('Dibersihkan', 'Semua riwayat laporan telah dihapus.', 'fa-trash-can', 'rose');
+            }
+        }
+
+        // Custom Confirm wrapper
+        function confirmAction(message) {
+            return window.confirm(message);
+        }
+
+        // Sorting function
+        function sortBy(column) {
+            if (currentSortColumn === column) {
+                sortAscending = !sortAscending;
+            } else {
+                currentSortColumn = column;
+                sortAscending = true;
+            }
+            renderTable();
+        }
+
+        // Render Data Table & Update Stats
+        function renderTable() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const tableBody = document.getElementById('reportTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            // Filter
+            let filtered = reports.filter(r => 
+                r.store.toLowerCase().includes(searchQuery) || 
+                r.item.toLowerCase().includes(searchQuery)
+            );
+
+            // Sort
+            filtered.sort((a, b) => {
+                let valA = a[currentSortColumn === 'store' ? 'store' : currentSortColumn === 'item' ? 'item' : 'date'];
+                let valB = b[currentSortColumn === 'store' ? 'store' : currentSortColumn === 'item' ? 'item' : 'date'];
+                
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+
+                if (valA < valB) return sortAscending ? -1 : 1;
+                if (valA > valB) return sortAscending ? 1 : -1;
+                return 0;
+            });
+
+            // Populate Table HTML
+            tableBody.innerHTML = '';
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filtered.forEach((report, idx) => {
+                    const originalIndex = reports.indexOf(report);
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-50/80 transition duration-150 border-b border-slate-100";
+                    row.innerHTML = `
+                        <td class="py-3.5 px-4 text-slate-500 font-medium text-xs">${idx + 1}</td>
+                        <td class="py-3.5 px-4 font-semibold text-slate-900">${escapeHtml(report.store)}</td>
+                        <td class="py-3.5 px-4 text-slate-700">${escapeHtml(report.item)}</td>
+                        <td class="py-3.5 px-4 text-slate-600 text-xs">${formatDate(report.date)}</td>
+                        <td class="py-3.5 px-4 text-right space-x-1 no-print">
+                            <button onclick="editReport(${originalIndex})" class="p-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-lg transition" title="Edit">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteReport(${originalIndex})" class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-lg transition" title="Hapus">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            updateStatistics();
+        }
+
+        // Export to PDF Function
+        function exportToPDF() {
+            if (reports.length === 0) {
+                showModal('Perhatian', 'Tidak ada data laporan untuk di-export ke PDF.', 'fa-triangle-exclamation', 'amber');
+                return;
+            }
+
+            // Update timestamp stamp in PDF view
+            const now = new Date();
+            document.getElementById('exportDateStamp').innerText = `Dicetak pada: ${now.toLocaleDateString('id-ID', { dateStyle: 'full' })} ${now.toLocaleTimeString('id-ID')}`;
+
+            // Element to download
+            const element = document.getElementById('pdfExportContainer');
+
+            // Options for html2pdf
+            const opt = {
+                margin:       10,
+                filename:     `Laporan-Toko_${new Date().toISOString().split('T')[0]}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Trigger generation & download
+            html2pdf().from(element).set(opt).save().then(() => {
+                showModal('Berhasil', 'File PDF berhasil diunduh.', 'fa-circle-check', 'emerald');
+            }).catch(err => {
+                showModal('Gagal', 'Terjadi kesalahan saat membuat PDF.', 'fa-triangle-exclamation', 'rose');
+            });
+        }
+
+        // Update Dashboard Statistics Cards
+        function updateStatistics() {
+            const totalReports = reports.length;
+            const uniqueStores = [...new Set(reports.map(r => r.store.trim().toLowerCase()))].length;
+
+            document.getElementById('statTotalReports').innerText = totalReports;
+            document.getElementById('statTotalQuantity').innerText = totalReports; // Using report count for stat placeholder since quantity field is removed
+            document.getElementById('statTotalStores').innerText = uniqueStores;
+        }
+
+        // Helper: Format Date for readable view (DD MMM YYYY)
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            try {
+                return new Date(dateString).toLocaleDateString('id-ID', options);
+            } catch(e) {
+                return dateString;
+            }
+        }
+
+        // Helper: Escape HTML to avoid XSS
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Placeholder notice for export features
+        function showComingSoon(formatName) {
+            showModal('Segera Hadir!', `Fitur unduh laporan ke format ${formatName} sedang dikembangkan dan akan segera hadir pada pembaruan berikutnya.`, 'fa-clock', 'indigo');
+        }
+
+        // Modal Controls
+        function showModal(title, message, iconClass, colorTheme) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            
+            const iconEl = document.getElementById('modalIcon');
+            iconEl.className = `fa-solid ${iconClass}`;
+            
+            const containerEl = document.getElementById('modalIconContainer');
+            containerEl.className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl bg-${colorTheme}-50 text-${colorTheme}-600`;
+
+            const modal = document.getElementById('notificationModal');
+            const content = document.getElementById('modalContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('notificationModal');
+            const content = document.getElementById('modalContent');
+            
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+    </script>
+</body>
+</html>
+```
