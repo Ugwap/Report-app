@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Laporan Toko & Barang</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
+    <!-- Tailwind CSS (Play CDN, versi dikunci agar tampilan stabil) -->
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <!-- Font Inter & FontAwesome Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,6 +15,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
+
+        /* Saat dicetak lewat browser */
+        @media print {
+            .no-print { display: none !important; }
+            #pdfExportContainer { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+        }
+
+        /* Saat proses export PDF: kolom Aksi disembunyikan dari hasil */
+        body.mode-pdf .no-print { display: none !important; }
+        body.mode-pdf #pdfExportContainer { border: 0 !important; box-shadow: none !important; }
+
+        /* Cegah satu baris tabel terpotong di tengah halaman PDF */
+        #pdfExportContainer tr { page-break-inside: avoid; break-inside: avoid; }
+        #pdfExportContainer thead { display: table-header-group; }
+        #pdfExportContainer table { width: 100%; border-collapse: collapse; }
+        #pdfExportContainer th,
+        #pdfExportContainer td { border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
@@ -26,7 +45,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-slate-900 leading-tight">StoreReport Hub</h1>
-                    <p class="text-xs text-slate-500">Kelola Laporan Barang & Toko</p>
+                    <p class="text-xs text-slate-500">Kelola Laporan Barang &amp; Toko · v2</p>
                 </div>
             </div>
             <!-- Export Actions -->
@@ -34,10 +53,6 @@
                 <button onclick="exportToPDF()" class="inline-flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition shadow-sm">
                     <i class="fa-solid fa-file-pdf"></i>
                     <span>Export PDF</span>
-                </button>
-                <button onclick="showComingSoon('Excel')" class="hidden sm:inline-flex items-center space-x-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition shadow-sm">
-                    <i class="fa-solid fa-file-excel text-emerald-500"></i>
-                    <span>Export Excel</span>
                 </button>
             </div>
         </div>
@@ -62,8 +77,8 @@
                     <i class="fa-solid fa-boxes-stacked text-2xl"></i>
                 </div>
                 <div>
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Jumlah Barang</p>
-                    <h3 id="statTotalQuantity" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Barang Unik</p>
+                    <h3 id="statTotalItems" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
                 </div>
             </div>
             <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
@@ -79,7 +94,7 @@
 
         <!-- Dashboard Layout: Form + Data Section -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
+
             <!-- Left Column: Form Input / Edit -->
             <div class="lg:col-span-1">
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sticky top-24">
@@ -93,36 +108,36 @@
 
                     <form id="reportForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
                         <input type="hidden" id="reportIndex" value="">
-                        
+
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Toko</label>
+                            <label for="storeName" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Toko</label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                     <i class="fa-solid fa-store text-xs"></i>
                                 </span>
-                                <input type="text" id="storeName" required placeholder="Masukkan nama toko" 
+                                <input type="text" id="storeName" name="storeName" required placeholder="Masukkan nama toko"
                                     class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Barang</label>
+                            <label for="itemName" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nama Barang</label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                     <i class="fa-solid fa-box text-xs"></i>
                                 </span>
-                                <input type="text" id="itemName" required placeholder="Masukkan nama barang" 
+                                <input type="text" id="itemName" name="itemName" required placeholder="Masukkan nama barang"
                                     class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal</label>
+                            <label for="reportDate" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Tanggal</label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                     <i class="fa-solid fa-calendar text-xs"></i>
                                 </span>
-                                <input type="date" id="reportDate" required 
+                                <input type="date" id="reportDate" name="reportDate" required
                                     class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                             </div>
                         </div>
@@ -139,18 +154,27 @@
 
             <!-- Right Column: Data Table & Filters -->
             <div class="lg:col-span-2 space-y-6">
-                
+
                 <!-- Search & Filters Toolbar -->
                 <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div class="relative w-full sm:w-72">
+                    <div class="relative w-full sm:w-64">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                             <i class="fa-solid fa-search text-xs"></i>
                         </span>
-                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari toko atau barang..." 
+                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari toko atau barang..."
                             class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                     </div>
-                    
-                    <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                        <button onclick="backupData()" class="px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 rounded-xl transition border border-slate-300 flex items-center space-x-1" title="Simpan salinan data ke file JSON">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Backup</span>
+                        </button>
+                        <button onclick="document.getElementById('restoreInput').click()" class="px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 rounded-xl transition border border-slate-300 flex items-center space-x-1" title="Pulihkan data dari file JSON">
+                            <i class="fa-solid fa-upload"></i>
+                            <span>Restore</span>
+                        </button>
+                        <input type="file" id="restoreInput" accept="application/json,.json" onchange="restoreData(event)" class="hidden">
                         <button onclick="clearAllData()" class="px-3 py-2 text-xs font-medium text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition border border-rose-200 flex items-center space-x-1">
                             <i class="fa-solid fa-trash-can"></i>
                             <span>Hapus Semua</span>
@@ -160,10 +184,10 @@
 
                 <!-- Table Wrapper (Target for PDF export container) -->
                 <div id="pdfExportContainer" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-4 sm:p-6">
-                    <!-- PDF Header Title (Only visible inside PDF or nice header) -->
+                    <!-- PDF Header Title -->
                     <div class="mb-4 pb-4 border-b border-slate-100 flex justify-between items-center">
                         <div>
-                            <h2 class="text-base font-bold text-slate-900">Laporan Rekapitulasi Toko & Barang</h2>
+                            <h2 class="text-base font-bold text-slate-900">Laporan Rekapitulasi Toko &amp; Barang</h2>
                             <p class="text-xs text-slate-500" id="exportDateStamp">Dicetak pada: -</p>
                         </div>
                         <div class="text-right hidden sm:block">
@@ -176,18 +200,18 @@
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
                                     <th class="py-3.5 px-4 w-12">No</th>
-                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('store')">Nama Toko <i class="fa-solid fa-sort text-[10px] ml-1"></i></th>
-                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('item')">Nama Barang <i class="fa-solid fa-sort text-[10px] ml-1"></i></th>
-                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('date')">Tanggal <i class="fa-solid fa-sort text-[10px] ml-1"></i></th>
+                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('store')">Nama Toko <i id="sortIconStore" class="fa-solid fa-sort text-[10px] ml-1"></i></th>
+                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('item')">Nama Barang <i id="sortIconItem" class="fa-solid fa-sort text-[10px] ml-1"></i></th>
+                                    <th class="py-3.5 px-4 cursor-pointer hover:text-indigo-600" onclick="sortBy('date')">Tanggal <i id="sortIconDate" class="fa-solid fa-sort text-[10px] ml-1"></i></th>
                                     <th class="py-3.5 px-4 text-right no-print">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="reportTableBody" class="divide-y divide-slate-100 text-sm">
-                                <!-- Dynamic rows populated via JS -->
+                                <!-- Baris data diisi lewat JavaScript -->
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <!-- Empty State -->
                     <div id="emptyState" class="hidden py-16 text-center">
                         <div class="inline-flex p-4 bg-slate-100 text-slate-400 rounded-full mb-3">
@@ -207,12 +231,13 @@
     <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 mt-12 py-4">
         <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-400">
-            &copy; 2026 StoreReport Hub. All data is saved securely in your browser local storage.
+            &copy; 2026 StoreReport Hub. Data tersimpan di browser ini — gunakan tombol Backup untuk menyimpan salinan.
         </div>
     </footer>
 
-    <!-- Custom Notification / Modal Notification -->
-    <div id="notificationModal" class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+    <!-- Custom Notification / Modal -->
+    <div id="notificationModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalMessage"
+        class="fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl mx-4 transform scale-95 transition-transform duration-300" id="modalContent">
             <div class="text-center">
                 <div id="modalIconContainer" class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 text-xl">
@@ -229,48 +254,77 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        // State Management
+        // ===== State =====
         let reports = [];
         let currentSortColumn = 'date';
         let sortAscending = false;
 
-        // Initialize App on Load
-        window.onload = function() {
+        const STORAGE_KEY = 'store_reports';
+        const TEMA_MODAL = {
+            indigo: 'bg-indigo-50 text-indigo-600',
+            emerald: 'bg-emerald-50 text-emerald-600',
+            amber: 'bg-amber-50 text-amber-600',
+            rose: 'bg-rose-50 text-rose-600'
+        };
+
+        // ===== Inisialisasi =====
+        document.addEventListener('DOMContentLoaded', function () {
             setDefaultDate();
             loadReportsFromStorage();
             renderTable();
-        };
+        });
 
-        // Set default date to today's date (YYYY-MM-DD)
-        function setDefaultDate() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('reportDate').value = today;
+        // Tanggal hari ini menurut waktu lokal (bukan UTC),
+        // supaya tidak mundur sehari saat dibuka dini hari WIB.
+        function tanggalLokal(date) {
+            const d = date || new Date();
+            const tahun = d.getFullYear();
+            const bulan = String(d.getMonth() + 1).padStart(2, '0');
+            const hari = String(d.getDate()).padStart(2, '0');
+            return tahun + '-' + bulan + '-' + hari;
         }
 
-        // Local Storage Operations
+        function setDefaultDate() {
+            document.getElementById('reportDate').value = tanggalLokal();
+        }
+
+        // ===== Local Storage =====
         function loadReportsFromStorage() {
-            const saved = localStorage.getItem('store_reports');
-            if (saved) {
-                try {
-                    reports = JSON.parse(saved);
-                } catch(e) {
-                    reports = [];
-                }
-            } else {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) {
                 reports = [];
-                saveReportsToStorage();
+                return;
+            }
+            try {
+                const parsed = JSON.parse(saved);
+                reports = Array.isArray(parsed) ? parsed.filter(isLaporanValid) : [];
+            } catch (e) {
+                reports = [];
+                console.error('Data laporan rusak, dimulai dari kosong.', e);
             }
         }
 
-        function saveReportsToStorage() {
-            localStorage.setItem('store_reports', JSON.stringify(reports));
+        function isLaporanValid(r) {
+            return r && typeof r.store === 'string' && typeof r.item === 'string' && typeof r.date === 'string' && r.date !== '';
         }
 
-        // Handle Form Submit (Create or Update)
+        function saveReportsToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+                return true;
+            } catch (e) {
+                console.error('Gagal menyimpan ke localStorage.', e);
+                showModal('Gagal Menyimpan', 'Penyimpanan browser penuh atau diblokir. Lakukan Backup lalu hapus sebagian data.', 'fa-triangle-exclamation', 'rose');
+                return false;
+            }
+        }
+
+        // ===== Form: Tambah / Edit =====
         function handleFormSubmit(event) {
             event.preventDefault();
-            
-            const index = document.getElementById('reportIndex').value;
+
+            const indexRaw = document.getElementById('reportIndex').value;
+            const index = indexRaw === '' ? -1 : Number(indexRaw);
             const store = document.getElementById('storeName').value.trim();
             const item = document.getElementById('itemName').value.trim();
             const date = document.getElementById('reportDate').value;
@@ -280,13 +334,23 @@
                 return;
             }
 
-            if (index === '') {
-                // Add new
-                reports.push({ store, item, date });
+            // Cegah data ganda (toko + barang + tanggal sama)
+            const duplikat = reports.some(function (r, i) {
+                return i !== index &&
+                    r.store.trim().toLowerCase() === store.toLowerCase() &&
+                    r.item.trim().toLowerCase() === item.toLowerCase() &&
+                    r.date === date;
+            });
+            if (duplikat) {
+                showModal('Data Sudah Ada', 'Laporan dengan toko, barang, dan tanggal yang sama sudah tersimpan.', 'fa-circle-info', 'amber');
+                return;
+            }
+
+            if (index === -1) {
+                reports.push({ store: store, item: item, date: date });
                 showModal('Berhasil', 'Laporan baru berhasil ditambahkan.', 'fa-circle-check', 'emerald');
             } else {
-                // Update existing
-                reports[index] = { store, item, date };
+                reports[index] = { store: store, item: item, date: date };
                 showModal('Berhasil', 'Laporan berhasil diperbarui.', 'fa-circle-check', 'emerald');
             }
 
@@ -295,7 +359,6 @@
             renderTable();
         }
 
-        // Reset Form
         function resetForm() {
             document.getElementById('reportForm').reset();
             document.getElementById('reportIndex').value = '';
@@ -305,9 +368,10 @@
             setDefaultDate();
         }
 
-        // Edit Report
         function editReport(index) {
             const report = reports[index];
+            if (!report) return;
+
             document.getElementById('reportIndex').value = index;
             document.getElementById('storeName').value = report.store;
             document.getElementById('itemName').value = report.item;
@@ -317,12 +381,11 @@
             document.getElementById('btnSubmit').innerHTML = '<i class="fa-solid fa-check"></i><span>Perbarui Laporan</span>';
             document.getElementById('btnCancelEdit').classList.remove('hidden');
 
-            // Scroll to form on mobile/tablet view
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Delete Single Report
         function deleteReport(index) {
+            if (!reports[index]) return;
             if (confirmAction('Apakah Anda yakin ingin menghapus laporan ini?')) {
                 reports.splice(index, 1);
                 saveReportsToStorage();
@@ -331,7 +394,6 @@
             }
         }
 
-        // Clear All Data
         function clearAllData() {
             if (reports.length === 0) {
                 showModal('Informasi', 'Tidak ada data untuk dihapus.', 'fa-info', 'indigo');
@@ -345,12 +407,87 @@
             }
         }
 
-        // Custom Confirm wrapper
         function confirmAction(message) {
             return window.confirm(message);
         }
 
-        // Sorting function
+        // ===== Backup & Restore (JSON) =====
+        function backupData() {
+            if (reports.length === 0) {
+                showModal('Informasi', 'Belum ada data untuk dibackup.', 'fa-info', 'indigo');
+                return;
+            }
+
+            const isi = JSON.stringify(reports, null, 2);
+            const blob = new Blob([isi], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'backup-laporan-' + tanggalLokal() + '.json';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+
+            showModal('Backup Berhasil', reports.length + ' data berhasil disimpan ke file. Simpan file tersebut di tempat aman.', 'fa-circle-check', 'emerald');
+        }
+
+        function restoreData(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                let hasil = [];
+                try {
+                    const parsed = JSON.parse(String(e.target.result));
+                    if (!Array.isArray(parsed)) throw new Error('Isi file bukan daftar laporan.');
+                    hasil = parsed
+                        .filter(isLaporanValid)
+                        .map(function (r) {
+                            return {
+                                store: r.store.trim(),
+                                item: r.item.trim(),
+                                date: String(r.date).slice(0, 10)
+                            };
+                        })
+                        .filter(function (r) { return r.store && r.item && r.date; });
+                } catch (err) {
+                    showModal('Restore Gagal', 'File backup tidak valid. Pastikan file JSON berasal dari tombol Backup.', 'fa-triangle-exclamation', 'rose');
+                    event.target.value = '';
+                    return;
+                }
+
+                if (hasil.length === 0) {
+                    showModal('Restore Gagal', 'Tidak ada data valid di dalam file tersebut.', 'fa-triangle-exclamation', 'rose');
+                    event.target.value = '';
+                    return;
+                }
+
+                if (reports.length > 0) {
+                    const lanjut = confirmAction('Ganti ' + reports.length + ' data yang sekarang dengan ' + hasil.length + ' data dari file backup?');
+                    if (!lanjut) {
+                        event.target.value = '';
+                        return;
+                    }
+                }
+
+                reports = hasil;
+                saveReportsToStorage();
+                renderTable();
+                event.target.value = '';
+                showModal('Restore Berhasil', hasil.length + ' data berhasil dipulihkan dari file backup.', 'fa-circle-check', 'emerald');
+            };
+
+            reader.onerror = function () {
+                showModal('Restore Gagal', 'File tidak dapat dibaca.', 'fa-triangle-exclamation', 'rose');
+                event.target.value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        // ===== Urutkan =====
         function sortBy(column) {
             if (currentSortColumn === column) {
                 sortAscending = !sortAscending;
@@ -361,117 +498,142 @@
             renderTable();
         }
 
-        // Render Data Table & Update Stats
+        function updateSortIcons() {
+            const ikon = {
+                store: document.getElementById('sortIconStore'),
+                item: document.getElementById('sortIconItem'),
+                date: document.getElementById('sortIconDate')
+            };
+            Object.keys(ikon).forEach(function (key) {
+                if (!ikon[key]) return;
+                ikon[key].className = 'fa-solid text-[10px] ml-1 ' +
+                    (currentSortColumn === key
+                        ? (sortAscending ? 'fa-sort-up' : 'fa-sort-down')
+                        : 'fa-sort');
+            });
+        }
+
+        // ===== Render Tabel & Statistik =====
         function renderTable() {
-            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const inputCari = document.getElementById('searchInput');
+            const searchQuery = (inputCari ? inputCari.value : '').toLowerCase();
             const tableBody = document.getElementById('reportTableBody');
             const emptyState = document.getElementById('emptyState');
 
-            // Filter
-            let filtered = reports.filter(r => 
-                r.store.toLowerCase().includes(searchQuery) || 
-                r.item.toLowerCase().includes(searchQuery)
-            );
+            const filtered = reports.filter(function (r) {
+                return r.store.toLowerCase().indexOf(searchQuery) !== -1 ||
+                    r.item.toLowerCase().indexOf(searchQuery) !== -1 ||
+                    formatDate(r.date).toLowerCase().indexOf(searchQuery) !== -1;
+            });
 
-            // Sort
-            filtered.sort((a, b) => {
-                let valA = a[currentSortColumn === 'store' ? 'store' : currentSortColumn === 'item' ? 'item' : 'date'];
-                let valB = b[currentSortColumn === 'store' ? 'store' : currentSortColumn === 'item' ? 'item' : 'date'];
-                
-                if (typeof valA === 'string') {
-                    valA = valA.toLowerCase();
-                    valB = valB.toLowerCase();
-                }
+            const kolom = currentSortColumn === 'store' ? 'store'
+                : currentSortColumn === 'item' ? 'item' : 'date';
 
+            filtered.sort(function (a, b) {
+                const valA = String(a[kolom]).toLowerCase();
+                const valB = String(b[kolom]).toLowerCase();
                 if (valA < valB) return sortAscending ? -1 : 1;
                 if (valA > valB) return sortAscending ? 1 : -1;
                 return 0;
             });
 
-            // Populate Table HTML
             tableBody.innerHTML = '';
+
             if (filtered.length === 0) {
                 emptyState.classList.remove('hidden');
             } else {
                 emptyState.classList.add('hidden');
-                filtered.forEach((report, idx) => {
+                filtered.forEach(function (report, idx) {
                     const originalIndex = reports.indexOf(report);
                     const row = document.createElement('tr');
-                    row.className = "hover:bg-slate-50/80 transition duration-150 border-b border-slate-100";
-                    row.innerHTML = `
-                        <td class="py-3.5 px-4 text-slate-500 font-medium text-xs">${idx + 1}</td>
-                        <td class="py-3.5 px-4 font-semibold text-slate-900">${escapeHtml(report.store)}</td>
-                        <td class="py-3.5 px-4 text-slate-700">${escapeHtml(report.item)}</td>
-                        <td class="py-3.5 px-4 text-slate-600 text-xs">${formatDate(report.date)}</td>
-                        <td class="py-3.5 px-4 text-right space-x-1 no-print">
-                            <button onclick="editReport(${originalIndex})" class="p-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-lg transition" title="Edit">
-                                <i class="fa-solid fa-pen text-xs"></i>
-                            </button>
-                            <button onclick="deleteReport(${originalIndex})" class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-lg transition" title="Hapus">
-                                <i class="fa-solid fa-trash text-xs"></i>
-                            </button>
-                        </td>
-                    `;
+                    row.className = 'hover:bg-slate-50/80 transition duration-150 border-b border-slate-100';
+                    row.innerHTML =
+                        '<td class="py-3.5 px-4 text-slate-500 font-medium text-xs">' + (idx + 1) + '</td>' +
+                        '<td class="py-3.5 px-4 font-semibold text-slate-900">' + escapeHtml(report.store) + '</td>' +
+                        '<td class="py-3.5 px-4 text-slate-700">' + escapeHtml(report.item) + '</td>' +
+                        '<td class="py-3.5 px-4 text-slate-600 text-xs">' + formatDate(report.date) + '</td>' +
+                        '<td class="py-3.5 px-4 text-right space-x-1 no-print">' +
+                            '<button onclick="editReport(' + originalIndex + ')" class="p-1.5 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-lg transition" title="Edit" aria-label="Edit laporan">' +
+                                '<i class="fa-solid fa-pen text-xs"></i>' +
+                            '</button>' +
+                            '<button onclick="deleteReport(' + originalIndex + ')" class="p-1.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 rounded-lg transition" title="Hapus" aria-label="Hapus laporan">' +
+                                '<i class="fa-solid fa-trash text-xs"></i>' +
+                            '</button>' +
+                        '</td>';
                     tableBody.appendChild(row);
                 });
             }
 
+            updateSortIcons();
             updateStatistics();
         }
 
-        // Export to PDF Function
+        // ===== Export PDF =====
         function exportToPDF() {
             if (reports.length === 0) {
                 showModal('Perhatian', 'Tidak ada data laporan untuk di-export ke PDF.', 'fa-triangle-exclamation', 'amber');
                 return;
             }
 
-            // Update timestamp stamp in PDF view
-            const now = new Date();
-            document.getElementById('exportDateStamp').innerText = `Dicetak pada: ${now.toLocaleDateString('id-ID', { dateStyle: 'full' })} ${now.toLocaleTimeString('id-ID')}`;
+            if (typeof html2pdf === 'undefined') {
+                showModal('Gagal', 'Library PDF gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.', 'fa-triangle-exclamation', 'rose');
+                return;
+            }
 
-            // Element to download
+            const now = new Date();
+            document.getElementById('exportDateStamp').innerText =
+                'Dicetak pada: ' + now.toLocaleDateString('id-ID', { dateStyle: 'full' }) + ' ' + now.toLocaleTimeString('id-ID');
+
             const element = document.getElementById('pdfExportContainer');
 
-            // Options for html2pdf
             const opt = {
-                margin:       10,
-                filename:     `Laporan-Toko_${new Date().toISOString().split('T')[0]}.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, logging: false },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                margin: [10, 8, 10, 8],
+                filename: 'Laporan-Toko_' + tanggalLokal() + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'], avoid: ['tr'] }
             };
 
-            // Trigger generation & download
-            html2pdf().from(element).set(opt).save().then(() => {
-                showModal('Berhasil', 'File PDF berhasil diunduh.', 'fa-circle-check', 'emerald');
-            }).catch(err => {
-                showModal('Gagal', 'Terjadi kesalahan saat membuat PDF.', 'fa-triangle-exclamation', 'rose');
-            });
+            // Sembunyikan kolom Aksi selama proses render ke PDF
+            document.body.classList.add('mode-pdf');
+
+            html2pdf().set(opt).from(element).save()
+                .then(function () {
+                    showModal('Berhasil', 'File PDF berhasil diunduh.', 'fa-circle-check', 'emerald');
+                })
+                .catch(function (err) {
+                    console.error(err);
+                    showModal('Gagal', 'Terjadi kesalahan saat membuat PDF.', 'fa-triangle-exclamation', 'rose');
+                })
+                .then(function () {
+                    document.body.classList.remove('mode-pdf');
+                });
         }
 
-        // Update Dashboard Statistics Cards
+        // ===== Statistik =====
         function updateStatistics() {
-            const totalReports = reports.length;
-            const uniqueStores = [...new Set(reports.map(r => r.store.trim().toLowerCase()))].length;
+            const unik = function (key) {
+                return new Set(reports.map(function (r) { return r[key].trim().toLowerCase(); })).size;
+            };
 
-            document.getElementById('statTotalReports').innerText = totalReports;
-            document.getElementById('statTotalQuantity').innerText = totalReports; // Using report count for stat placeholder since quantity field is removed
-            document.getElementById('statTotalStores').innerText = uniqueStores;
+            document.getElementById('statTotalReports').innerText = reports.length;
+            document.getElementById('statTotalItems').innerText = unik('item');
+            document.getElementById('statTotalStores').innerText = unik('store');
         }
 
-        // Helper: Format Date for readable view (DD MMM YYYY)
+        // ===== Helper =====
         function formatDate(dateString) {
             if (!dateString) return '-';
-            const options = { year: 'numeric', month: 'short', day: 'numeric' };
-            try {
-                return new Date(dateString).toLocaleDateString('id-ID', options);
-            } catch(e) {
-                return dateString;
-            }
+            const bagian = String(dateString).split('-');
+            if (bagian.length !== 3) return dateString;
+
+            const tanggal = new Date(Number(bagian[0]), Number(bagian[1]) - 1, Number(bagian[2]));
+            if (isNaN(tanggal.getTime())) return dateString;
+
+            return tanggal.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
         }
 
-        // Helper: Escape HTML to avoid XSS
         function escapeHtml(text) {
             const map = {
                 '&': '&amp;',
@@ -480,30 +642,26 @@
                 '"': '&quot;',
                 "'": '&#039;'
             };
-            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+            return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
         }
 
-        // Placeholder notice for export features
-        function showComingSoon(formatName) {
-            showModal('Segera Hadir!', `Fitur unduh laporan ke format ${formatName} sedang dikembangkan dan akan segera hadir pada pembaruan berikutnya.`, 'fa-clock', 'indigo');
-        }
-
-        // Modal Controls
+        // ===== Modal =====
         function showModal(title, message, iconClass, colorTheme) {
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalMessage').innerText = message;
-            
+
             const iconEl = document.getElementById('modalIcon');
-            iconEl.className = `fa-solid ${iconClass}`;
-            
+            iconEl.className = 'fa-solid ' + iconClass;
+
             const containerEl = document.getElementById('modalIconContainer');
-            containerEl.className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl bg-${colorTheme}-50 text-${colorTheme}-600`;
+            containerEl.className = 'w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl ' +
+                (TEMA_MODAL[colorTheme] || TEMA_MODAL.indigo);
 
             const modal = document.getElementById('notificationModal');
             const content = document.getElementById('modalContent');
-            
+
             modal.classList.remove('hidden');
-            setTimeout(() => {
+            setTimeout(function () {
                 modal.classList.remove('opacity-0');
                 content.classList.remove('scale-95');
                 content.classList.add('scale-100');
@@ -513,15 +671,26 @@
         function closeModal() {
             const modal = document.getElementById('notificationModal');
             const content = document.getElementById('modalContent');
-            
+
             modal.classList.add('opacity-0');
             content.classList.remove('scale-100');
             content.classList.add('scale-95');
-            
-            setTimeout(() => {
+
+            setTimeout(function () {
                 modal.classList.add('hidden');
             }, 300);
         }
+
+        // Tutup modal dengan tombol Escape atau klik latar gelap
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && !document.getElementById('notificationModal').classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('notificationModal').addEventListener('click', function (e) {
+            if (e.target === this) closeModal();
+        });
     </script>
 </body>
 </html>
